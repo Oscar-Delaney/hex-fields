@@ -1,0 +1,535 @@
+<title>Hex Fields</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: one narrow column; day tabs on top, the board is the page, controls sit in thumb reach below it. */
+:root {
+  --bg: #e9eee8;
+  --surface: #f6f8f4;
+  --ink: #16201a;
+  --muted: #56655c;
+  --line: #c6d0c7;
+  --tile: #fbfcf9;
+  --tile-line: #bfcac1;
+  --edge: #16201a;
+  --g: #3d9461; --g-ink: #ffffff; --g-tex: #2c7149;
+  --b: #3e72c8; --b-ink: #ffffff; --b-tex: #2d5aa3;
+  --y: #efbd3b; --y-ink: #3b2b04; --y-tex: #c99a22;
+  --err: #c9372c;
+  --focus: #16201a;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Verdana", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111713; --surface: #18201b; --ink: #e6eee8; --muted: #95a59b; --line: #2b362f;
+    --tile: #1e2722; --tile-line: #34413a; --edge: #050806;
+    --g: #46a46c; --g-tex: #357f53; --b: #5285d9; --b-tex: #3f6cb8; --y: #e8b737; --y-tex: #c2951f;
+    --err: #ff6f61; --focus: #e6eee8; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111713; --surface: #18201b; --ink: #e6eee8; --muted: #95a59b; --line: #2b362f;
+  --tile: #1e2722; --tile-line: #34413a; --edge: #050806;
+  --g: #46a46c; --g-tex: #357f53; --b: #5285d9; --b-tex: #3f6cb8; --y: #e8b737; --y-tex: #c2951f;
+  --err: #ff6f61; --focus: #e6eee8; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.app {
+  max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 2rem; letter-spacing: -0.02em; margin: 0; line-height: 1; }
+.day {
+  font-family: var(--display); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted);
+}
+.clock { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); font-size: 1.05rem; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.days button {
+  flex-direction: column; gap: 2px; min-height: 48px; padding: 6px 2px; border-radius: 8px;
+  font-family: var(--display); font-size: 0.9rem; letter-spacing: 0.02em;
+}
+.days button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.days .mark { font-family: var(--body); font-size: 0.72rem; line-height: 1; min-height: 0.8rem; color: var(--muted); }
+.days button[aria-selected="true"] .mark { color: var(--bg); }
+.days .special { grid-column: 1 / -1; flex-direction: row; gap: 10px; min-height: 44px; font-size: 1.05rem; margin-bottom: 2px; }
+.days .kicker { font-family: var(--body); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.days button[aria-selected="true"] .kicker { color: var(--bg); }
+.meta { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.board-wrap { width: 100%; }
+#board { display: block; width: 100%; height: auto; max-height: 82vh; margin: 0 auto; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+#board .base { stroke: var(--tile-line); stroke-width: 1; }
+#board .base.empty, #board .base.gb, #board .base.gy, #board .base.by { fill: var(--tile); }
+#board .base.g { fill: var(--g); stroke: var(--g); }
+#board .base.b { fill: var(--b); stroke: var(--b); }
+#board .base.y { fill: var(--y); stroke: var(--y); }
+#board .tex { pointer-events: none; opacity: 0.55; }
+#board .tex.empty { fill: none; }
+#board .tex.g { fill: url(#tex-g); }
+#board .tex.b { fill: url(#tex-b); }
+#board .tex.y { fill: url(#tex-y); }
+#board .tex.gb { fill: url(#pair-gb); opacity: 1; }
+#board .tex.gy { fill: url(#pair-gy); opacity: 1; }
+#board .tex.by { fill: url(#pair-by); opacity: 1; }
+#board .num { font-family: var(--body); font-weight: 700; font-size: 25px; text-anchor: middle; dominant-baseline: central; pointer-events: none; transition: opacity 0.2s; }
+#board .num.g, #board .num.b { fill: var(--g-ink); }
+#board .num.y { fill: var(--y-ink); }
+#board .num.done { opacity: 0.45; }
+#board .ring { fill: none; stroke: var(--err); stroke-width: 2.5; stroke-dasharray: 4 3; pointer-events: none; }
+#board .edges { stroke: var(--edge); stroke-width: 2.6; stroke-linecap: round; fill: none; pointer-events: none; opacity: 0.8; }
+#board .bad { fill: none; stroke: var(--err); stroke-width: 3; pointer-events: none; }
+#board .cursor { fill: none; stroke: var(--focus); stroke-width: 3; pointer-events: none; opacity: 0; }
+#board:focus-visible .cursor { opacity: 1; }
+#board.solved .edges { opacity: 1; }
+.status { min-height: 1.5em; margin: 0; font-size: 0.95rem; color: var(--muted); text-align: center; }
+.status.win { color: var(--ink); font-family: var(--display); font-weight: 700; font-size: 1.25rem; }
+.controls { display: flex; flex-direction: column; gap: 8px; }
+.palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.marks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+button {
+  font: inherit; font-weight: 700; color: var(--ink); background: var(--surface);
+  border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px;
+}
+.marks button { min-height: 40px; font-size: 0.9rem; padding: 8px 6px; }
+button:hover { border-color: var(--muted); }
+button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+button:disabled { opacity: 0.5; cursor: default; }
+.sw[aria-checked="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.chip { width: 18px; height: 18px; border-radius: 50%; flex: none; }
+.chip.g { background: var(--g); } .chip.b { background: var(--b); } .chip.y { background: var(--y); }
+.chip.gb { background: linear-gradient(135deg, var(--g) 50%, var(--b) 50%); }
+.chip.gy { background: linear-gradient(135deg, var(--g) 50%, var(--y) 50%); }
+.chip.by { background: linear-gradient(135deg, var(--b) 50%, var(--y) 50%); }
+.chip.e { background: var(--tile); border: 1.5px dashed var(--muted); }
+kbd { font: inherit; font-size: 0.75rem; color: var(--muted); font-weight: 400; }
+.rules { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.rules h2 { font-family: var(--display); font-size: 1.05rem; margin: 0; letter-spacing: 0.01em; }
+.rules p, .rules li { margin: 0; color: var(--ink); max-width: 62ch; }
+.rules ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 10px 14px; }
+summary { cursor: pointer; font-weight: 700; }
+details[open] summary { margin-bottom: 8px; }
+.inline-chip { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; vertical-align: -0.05em; margin-right: 0.15em; }
+@media (max-width: 420px) {
+  h1 { font-size: 1.7rem; }
+  .palette button span.label { display: none; }
+  kbd { display: none; }
+  .days button { font-size: 0.8rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="app">
+  <header class="top">
+    <div class="brand"><h1>Hex Fields</h1><span class="day" id="dayname"></span></div>
+    <div class="clock" id="clock" aria-label="Elapsed time">0:00</div>
+  </header>
+  <nav class="days" id="days" role="tablist" aria-label="Day of the week"></nav>
+  <p class="meta" id="meta"></p>
+
+  <div class="board-wrap">
+    <svg id="board" tabindex="0" role="application" aria-label="Puzzle board. Arrow keys move, Enter cycles, 1 to 6 paint or mark, 0 clears."></svg>
+  </div>
+  <p class="status" id="status" role="status" aria-live="polite">Tap a cell to cycle its colour, or drag to paint.</p>
+
+  <div class="controls">
+    <div class="palette" role="radiogroup" aria-label="Paint colour">
+      <button class="sw" data-m="1" role="radio" aria-checked="true"><span class="chip g"></span><span class="label">Green</span><kbd>1</kbd></button>
+      <button class="sw" data-m="2" role="radio" aria-checked="false"><span class="chip b"></span><span class="label">Blue</span><kbd>2</kbd></button>
+      <button class="sw" data-m="4" role="radio" aria-checked="false"><span class="chip y"></span><span class="label">Yellow</span><kbd>3</kbd></button>
+      <button class="sw" data-m="0" role="radio" aria-checked="false"><span class="chip e"></span><span class="label">Clear</span><kbd>0</kbd></button>
+    </div>
+    <div class="marks" role="radiogroup" aria-label="Two-colour marks">
+      <button class="sw" data-m="3" role="radio" aria-checked="false" title="Green or blue"><span class="chip gb"></span>Not yellow<kbd>4</kbd></button>
+      <button class="sw" data-m="5" role="radio" aria-checked="false" title="Green or yellow"><span class="chip gy"></span>Not blue<kbd>5</kbd></button>
+      <button class="sw" data-m="6" role="radio" aria-checked="false" title="Blue or yellow"><span class="chip by"></span>Not green<kbd>6</kbd></button>
+    </div>
+    <div class="actions">
+      <button id="undo">Undo</button>
+      <button id="check">Check</button>
+      <button id="restart">Restart</button>
+    </div>
+  </div>
+
+  <section class="rules">
+    <h2>Rules</h2>
+    <ul>
+      <li>Colour every cell <span class="inline-chip" style="background:var(--g)"></span>green, <span class="inline-chip" style="background:var(--b)"></span>blue or <span class="inline-chip" style="background:var(--y)"></span>yellow.</li>
+      <li>A field is a connected group of cells of one colour. Fields of the same colour can't touch, because they would be one field.</li>
+      <li>Every field contains exactly one number, in its own colour. The number is the field's size. A <b>?</b> field can be any size.</li>
+    </ul>
+    <details>
+      <summary>How to play</summary>
+      <ul>
+        <li>Great Britain is a one-off map of the mainland, about as hard as a weekend puzzle. Below it, the week's puzzles get harder from Monday to Sunday: Monday is a small board, and the weekend boards may need a short trial.</li>
+        <li>Tap a cell to cycle it: your chosen colour, then the other two, then blank.</li>
+        <li>Drag across cells to paint them all with the chosen colour or mark.</li>
+        <li>Press on a number to pick its colour, then drag outward to grow its field.</li>
+        <li><b>Not yellow</b>, <b>Not blue</b> and <b>Not green</b> mark a cell you've narrowed to two colours. The cell shows a pattern of both.</li>
+        <li>On a computer, right-click clears a cell. Keys 1–3 pick colours, 4–6 pick the two-colour marks, and 0 picks Clear.</li>
+        <li>A number fades once its field is the right size and closed off. A dashed ring means a field breaks a rule.</li>
+        <li>Check outlines any cell whose colour or mark rules out the solution. Every puzzle can be solved without it.</li>
+        <li>The clock starts with your first move and keeps running if you restart. It pauses while you look at another puzzle.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Solving tips</summary>
+      <ul>
+        <li><b>Finished fields.</b> Once a field reaches its number, every cell around it takes one of the other two colours. Mark those cells.</li>
+        <li><b>Separation.</b> A cell touching two numbers of the same colour can't be that colour.</li>
+        <li><b>Third colour.</b> On hexes, the three cells at each corner all touch. If a cell touches a green field and a blue field and can't join either, it must be yellow.</li>
+        <li><b>Even neighbours.</b> Walk around a field that doesn't touch the edge. Its neighbours alternate between the other two colours, so it has an even number of them.</li>
+        <li><b>Bottlenecks.</b> If a field can only reach its size through one cell, that cell belongs to it.</li>
+        <li><b>Short trials (weekends).</b> Pick a tightly constrained cell, assume a colour and follow it a few steps. If a rule breaks, that colour is out.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<script>
+const WEEK = __WEEK__;
+const DAYS = ['gb', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].filter(d => WEEK[d]);
+const DAY_NAMES = { gb: 'Great Britain', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+const slug = d => d === 'gb' ? 'britain' : DAY_NAMES[d].toLowerCase();
+const HASH = Object.fromEntries(DAYS.map(d => [slug(d), d]));
+// A cell holds a bitmask of the colours it may be: 1 green, 2 blue, 4 yellow; 0 is blank.
+const COLS = ['g', 'b', 'y'], SINGLE = { 1: 0, 2: 1, 4: 2 }, PAIR = { 3: 'gb', 5: 'gy', 6: 'by' };
+const cls = m => m === 0 ? 'empty' : m in SINGLE ? COLS[SINGLE[m]] : PAIR[m];
+const KEYS = { 0: 0, 1: 1, 2: 2, 3: 4, 4: 3, 5: 5, 6: 6 };
+const S = 30, R3 = Math.sqrt(3), NS = 'http://www.w3.org/2000/svg';
+const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+const key = (q, r) => q + ',' + r;
+const ctr = ([q, r]) => [S * R3 * (q + r / 2), S * 1.5 * r];
+const corner = (cx, cy, k, s = S) => { const a = Math.PI / 180 * (60 * k - 30); return [cx + s * Math.cos(a), cy + s * Math.sin(a)]; };
+const hexPts = (cx, cy, s = S) => [0, 1, 2, 3, 4, 5].map(k => corner(cx, cy, k, s).map(v => v.toFixed(2)).join(',')).join(' ');
+// the edge facing DIRS[d] runs between these two corners
+const EDGE = [[0, 1], [5, 0], [4, 5], [3, 4], [2, 3], [1, 2]];
+const storeKey = d => `hexfields-v3:${d}:${WEEK[d].seed}`;
+const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+// current puzzle and its geometry
+let day, P, n, idx, nbrDir, nbr, clue, pts;
+// current play state
+let state, undo, checks, elapsed, startedAt, started, solved, sel = 1, cursor = 0;
+
+const blankBoard = () => { const s = new Array(n).fill(0); for (const [x, { c }] of clue) s[x] = 1 << c; return s; };
+
+// ---------- board drawing ----------
+const svg = document.getElementById('board');
+function pairPattern(id, a, b) {
+  const h = 5.5, w = R3 * h, H = 3 * h;
+  const hexes = [[0, 0, a], [w, 0, b], [2 * w, 0, a], [w / 2, 1.5 * h, b], [1.5 * w, 1.5 * h, a], [2.5 * w, 1.5 * h, b],
+    [-w / 2, 1.5 * h, a], [0, H, a], [w, H, b], [2 * w, H, a]];
+  return `<pattern id="${id}" width="${(2 * w).toFixed(3)}" height="${H}" patternUnits="userSpaceOnUse">` +
+    `<rect width="${2 * w}" height="${H}" style="fill:var(--tile)"/>` +
+    hexes.map(([x, y, c]) => `<polygon points="${hexPts(x, y, h - 0.8)}" style="fill:var(--${c})"/>`).join('') + '</pattern>';
+}
+svg.innerHTML = `<defs>
+  <pattern id="tex-g" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.1" style="fill:var(--g-tex)"/></pattern>
+  <pattern id="tex-b" width="14" height="7" patternUnits="userSpaceOnUse"><path d="M0 4 q3.5 -3 7 0 t7 0" style="fill:none;stroke:var(--b-tex);stroke-width:1.2"/></pattern>
+  <pattern id="tex-y" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><line x1="0" y1="0" x2="0" y2="7" style="stroke:var(--y-tex);stroke-width:1.4"/></pattern>
+  ${pairPattern('pair-gb', 'g', 'b')}${pairPattern('pair-gy', 'g', 'y')}${pairPattern('pair-by', 'b', 'y')}
+</defs>`;
+const gCells = document.createElementNS(NS, 'g');
+const edges = document.createElementNS(NS, 'path'); edges.setAttribute('class', 'edges');
+const gOver = document.createElementNS(NS, 'g');
+const cursorEl = document.createElementNS(NS, 'polygon'); cursorEl.setAttribute('class', 'cursor');
+svg.append(gCells, edges, gOver, cursorEl);
+let base = [], tex = [], nums = new Map();
+
+function buildBoard() {
+  idx = new Map(P.cells.map(([q, r], i) => [key(q, r), i]));
+  nbrDir = P.cells.map(([q, r]) => DIRS.map(([a, b]) => idx.get(key(q + a, r + b))));
+  nbr = nbrDir.map(l => l.filter(v => v !== undefined));
+  clue = new Map(P.clues.map(([x, c, num]) => [x, { c, num }]));
+  pts = P.cells.map(ctr);
+  n = P.cells.length;
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), pad = S + 4;
+  svg.setAttribute('viewBox', `${Math.min(...xs) - pad} ${Math.min(...ys) - pad} ${Math.max(...xs) - Math.min(...xs) + 2 * pad} ${Math.max(...ys) - Math.min(...ys) + 2 * pad}`);
+  const across = (Math.max(...xs) - Math.min(...xs)) / (S * R3) + 1;
+  svg.style.maxWidth = Math.round(across * 64) + 'px';
+  gCells.replaceChildren(); base = []; tex = []; nums = new Map();
+  P.cells.forEach((cell, i) => {
+    const [cx, cy] = pts[i];
+    const b = document.createElementNS(NS, 'polygon'); b.setAttribute('points', hexPts(cx, cy));
+    const t = document.createElementNS(NS, 'polygon'); t.setAttribute('points', hexPts(cx, cy, S - 0.5));
+    gCells.append(b, t); base.push(b); tex.push(t);
+    if (clue.has(i)) {
+      const tx = document.createElementNS(NS, 'text');
+      tx.setAttribute('x', cx); tx.setAttribute('y', cy + 1);
+      const { c, num } = clue.get(i);
+      tx.textContent = num === null ? '?' : num;
+      gCells.append(tx); nums.set(i, tx);
+    }
+  });
+  cursor = Math.floor(n / 2);
+}
+
+// ---------- rules check (only definite colours count) ----------
+function analyse() {
+  const comp = new Array(n).fill(-1), comps = [];
+  for (let i = 0; i < n; i++) {
+    if (!(state[i] in SINGLE) || comp[i] >= 0) continue;
+    const id = comps.length, cells = [i], stack = [i]; comp[i] = id;
+    while (stack.length) { const x = stack.pop(); for (const y of nbr[x]) if (comp[y] < 0 && state[y] === state[i]) { comp[y] = id; cells.push(y); stack.push(y); } }
+    const clues = cells.filter(x => clue.has(x));
+    const closed = cells.every(x => nbr[x].every(y => state[y] in SINGLE));
+    comps.push({ cells, clues, closed });
+  }
+  const clueState = new Map(), badCells = [];
+  for (const K of comps) {
+    if (!K.clues.length) { if (K.closed) badCells.push(...K.cells); continue; }
+    for (const x of K.clues) {
+      const num = clue.get(x).num, size = K.cells.length;
+      let s = '';
+      if (K.clues.length > 1 || (num !== null && (size > num || (K.closed && size < num)))) s = 'error';
+      else if (K.closed && (num === null || size === num)) s = 'done';
+      clueState.set(x, s);
+    }
+  }
+  return { clueState, badCells };
+}
+
+// ---------- render ----------
+let flash = [], flashTimer = null;
+function render() {
+  for (let i = 0; i < n; i++) {
+    const k = cls(state[i]);
+    base[i].setAttribute('class', 'base ' + k);
+    tex[i].setAttribute('class', 'tex ' + k);
+  }
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    if (!(state[i] in SINGLE)) continue;
+    nbrDir[i].forEach((j, dir) => {
+      if (j === undefined || j < i || !(state[j] in SINGLE) || state[j] === state[i]) return;
+      const [a, b] = EDGE[dir], [cx, cy] = pts[i];
+      const p = corner(cx, cy, a), q = corner(cx, cy, b);
+      d += `M${p[0].toFixed(2)} ${p[1].toFixed(2)}L${q[0].toFixed(2)} ${q[1].toFixed(2)}`;
+    });
+  }
+  edges.setAttribute('d', d);
+  const { clueState, badCells } = analyse();
+  gOver.replaceChildren();
+  for (const [x, tx] of nums) {
+    const s = clueState.get(x) || '';
+    tx.setAttribute('class', 'num ' + COLS[clue.get(x).c] + (s === 'done' ? ' done' : ''));
+    if (s === 'error') {
+      const ring = document.createElementNS(NS, 'circle');
+      ring.setAttribute('cx', pts[x][0]); ring.setAttribute('cy', pts[x][1]); ring.setAttribute('r', S * 0.68);
+      ring.setAttribute('class', 'ring'); gOver.append(ring);
+    }
+  }
+  for (const x of new Set([...badCells, ...flash])) {
+    const p = document.createElementNS(NS, 'polygon');
+    p.setAttribute('points', hexPts(pts[x][0], pts[x][1], S - 3)); p.setAttribute('class', 'bad'); gOver.append(p);
+  }
+  cursorEl.setAttribute('points', hexPts(pts[cursor][0], pts[cursor][1], S - 2.5));
+  svg.classList.toggle('solved', solved);
+  document.getElementById('undo').disabled = !undo.length || solved;
+  renderTabs();
+}
+
+const statusEl = document.getElementById('status');
+function say(msg, win = false) { statusEl.textContent = msg; statusEl.classList.toggle('win', win); }
+const fmt = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const now = () => elapsed + (startedAt ? Date.now() - startedAt : 0);
+const solvedMsg = () => `Solved in ${fmt(elapsed)}` + (checks ? ` with ${checks} check${checks > 1 ? 's' : ''}.` : ' with no checks.');
+const hint = 'Tap a cell to cycle its colour, or drag to paint.';
+function tick() { document.getElementById('clock').textContent = fmt(now()); }
+setInterval(tick, 500);
+function pause() { if (startedAt) { elapsed = now(); startedAt = null; } }
+function resume() { if (started && !solved && !startedAt && !document.hidden) startedAt = Date.now(); }
+document.addEventListener('visibilitychange', () => { document.hidden ? pause() : resume(); save(); });
+
+function snapshot() { return { v: 3, day, state, checks, elapsed: now(), started, solved }; }
+function save() { if (day) store(storeKey(day), snapshot()); }
+
+function afterChange() {
+  if (!solved && state.every((m, i) => m === 1 << P.solution[i])) {
+    solved = true; pause();
+    say(solvedMsg(), true);
+  }
+  render(); save(); tick();
+}
+
+// ---------- days ----------
+const tabs = document.getElementById('days');
+tabs.innerHTML = DAYS.map(d => d === 'gb'
+  ? `<button role="tab" class="special" id="tab-gb" data-day="gb" aria-selected="false" aria-label="Great Britain"><span class="kicker">Special</span>Great Britain<span class="mark"></span></button>`
+  : `<button role="tab" id="tab-${d}" data-day="${d}" aria-selected="false" aria-label="${DAY_NAMES[d]}">${DAY_NAMES[d].slice(0, 3)}<span class="mark"></span></button>`).join('');
+tabs.addEventListener('click', e => { const b = e.target.closest('button'); if (b) openDay(b.dataset.day); });
+function renderTabs() {
+  for (const d of DAYS) {
+    const b = document.getElementById('tab-' + d);
+    const s = d === day ? snapshot() : load(storeKey(d));
+    b.setAttribute('aria-selected', String(d === day));
+    b.querySelector('.mark').textContent = s && s.solved ? '✓' : s && s.started ? '•' : '';
+    b.title = DAY_NAMES[d] + (s && s.solved ? ', solved' : s && s.started ? ', in progress' : '');
+  }
+}
+function openDay(d, data) {
+  if (d === day && !data) return;
+  if (day) { pause(); save(); }
+  clearFlash(); stroke = null;
+  day = d; P = WEEK[d];
+  buildBoard();
+  let saved = data && data.v === 3 && data.day === d ? data : load(storeKey(d));
+  if (!saved && d === 'wed') {  // carry over progress from the single-puzzle version
+    const old = load('hexfields-v2:' + P.seed);
+    if (old && old.v === 2) saved = { ...old, started: !old.solved && old.state.some((m, i) => m && !clue.has(i)) || old.solved };
+  }
+  state = blankBoard(); undo = []; checks = 0; elapsed = 0; startedAt = null; started = false; solved = false;
+  if (saved && Array.isArray(saved.state) && saved.state.length === n) {
+    state = saved.state; checks = saved.checks || 0; elapsed = saved.elapsed || 0;
+    started = !!saved.started; solved = !!saved.solved;
+  }
+  resume();
+  const perCol = [0, 1, 2].map(c => P.clues.filter(k => k[1] === c).length);
+  document.getElementById('dayname').textContent = DAY_NAMES[d];
+  document.getElementById('meta').textContent = `${n} cells · ${P.clues.length} fields (${perCol[0]} green, ${perCol[1]} blue, ${perCol[2]} yellow)`;
+  solved ? say(solvedMsg(), true) : say(started ? 'Welcome back. ' + hint : hint);
+  try { history.replaceState(null, '', '#' + slug(d)); } catch (e) {}
+  store('hexfields-v3:last', d);
+  render(); tick();
+}
+
+// ---------- painting ----------
+// Tapping cycles: chosen colour, the next two colours, blank. Dragging paints the chosen tool.
+function tapNext(m) {
+  if (sel === 0) return 0;
+  if (!(sel in SINGLE)) return m === sel ? 0 : sel;
+  const c = SINGLE[sel], seq = [1 << c, 1 << (c + 1) % 3, 1 << (c + 2) % 3, 0];
+  const k = seq.indexOf(m);
+  return k < 0 ? seq[0] : seq[(k + 1) % 4];
+}
+let stroke = null;
+function setCell(i, m) {
+  if (clue.has(i) || state[i] === m) return;
+  stroke.changes.push([i, state[i], m]); state[i] = m;
+  if (!started && m) { started = true; resume(); }
+}
+function cellAt(evt) {
+  const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+  const { x, y } = pt.matrixTransform(svg.getScreenCTM().inverse());
+  let q = (R3 / 3 * x - y / 3) / S, r = (2 / 3 * y) / S, s = -q - r;
+  let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+  const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
+  if (dq > dr && dq > ds) rq = -rr - rs; else if (dr > ds) rr = -rq - rs;
+  return idx.get(key(rq, rr));
+}
+function selectTool(m) {
+  sel = m;
+  document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-checked', String(+b.dataset.m === m)));
+}
+svg.addEventListener('contextmenu', e => e.preventDefault());
+svg.addEventListener('pointerdown', e => {
+  if (solved) return;
+  const i = cellAt(e); if (i === undefined) return;
+  svg.setPointerCapture(e.pointerId);
+  cursor = i;
+  if (clue.has(i) && e.button !== 2) selectTool(1 << clue.get(i).c);
+  stroke = { start: i, last: i, drag: false, erase: e.button === 2, changes: [] };
+  render();
+});
+svg.addEventListener('pointermove', e => {
+  if (!stroke) return;
+  const i = cellAt(e); if (i === undefined || i === stroke.last) return;
+  const paint = stroke.erase ? 0 : sel;
+  if (!stroke.drag) { stroke.drag = true; setCell(stroke.start, paint); }
+  stroke.last = i; setCell(i, paint); render();
+});
+function endStroke() {
+  if (!stroke) return;
+  if (!stroke.drag) setCell(stroke.start, stroke.erase ? 0 : tapNext(state[stroke.start]));
+  if (stroke.changes.length) { undo.push(stroke.changes); clearFlash(); }
+  stroke = null; afterChange();
+}
+svg.addEventListener('pointerup', endStroke);
+svg.addEventListener('pointercancel', endStroke);
+
+function setCursorCell(m) {
+  if (solved) return;
+  stroke = { start: cursor, drag: true, changes: [] };
+  setCell(cursor, m);
+  endStroke();
+}
+function moveCursor(dir) {
+  const [q, r] = P.cells[cursor];
+  const tries = { ArrowLeft: [[-1, 0]], ArrowRight: [[1, 0]], ArrowUp: [[1, -1], [0, -1]], ArrowDown: [[-1, 1], [0, 1]] }[dir];
+  for (const [a, b] of tries) { const j = idx.get(key(q + a, r + b)); if (j !== undefined) { cursor = j; break; } }
+  render();
+}
+svg.addEventListener('keydown', e => {
+  if (e.key.startsWith('Arrow')) { e.preventDefault(); moveCursor(e.key); }
+  else if (e.key in KEYS && e.key.length === 1) {
+    e.preventDefault(); const m = KEYS[e.key];
+    if (m) selectTool(m);
+    setCursorCell(state[cursor] === m ? 0 : m);
+  }
+  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCursorCell(tapNext(state[cursor])); }
+  else if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); setCursorCell(0); }
+});
+document.addEventListener('keydown', e => {
+  if (e.target === svg || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key in KEYS && e.key.length === 1) selectTool(KEYS[e.key]);
+  if (e.key === 'z' || e.key === 'u') doUndo();
+});
+document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => selectTool(+b.dataset.m)));
+
+function doUndo() {
+  if (solved || !undo.length) return;
+  for (const [i, before] of undo.pop().reverse()) state[i] = before;
+  clearFlash(); afterChange();
+}
+document.getElementById('undo').addEventListener('click', doUndo);
+
+function clearFlash() { flash = []; clearTimeout(flashTimer); }
+document.getElementById('check').addEventListener('click', () => {
+  if (solved) return;
+  const marked = state.filter((m, i) => m && !clue.has(i)).length;
+  if (!marked) { say('Colour some cells first.'); return; }
+  checks++;
+  flash = state.map((m, i) => m && !(m & 1 << P.solution[i]) ? i : -1).filter(i => i >= 0);
+  say(flash.length ? `${flash.length} cell${flash.length > 1 ? 's are' : ' is'} wrong. They're outlined in red.` : `All ${marked} coloured or marked cells fit the solution.`);
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { flash = []; render(); }, 2500);
+  render(); save();
+});
+
+const restartBtn = document.getElementById('restart');
+let armed = null;
+restartBtn.addEventListener('click', () => {
+  if (!armed) {
+    restartBtn.textContent = 'Clear board?';
+    armed = setTimeout(() => { armed = null; restartBtn.textContent = 'Restart'; }, 3000);
+    return;
+  }
+  clearTimeout(armed); armed = null; restartBtn.textContent = 'Restart';
+  // the board clears, but the clock and check count carry on
+  state = blankBoard(); undo = []; solved = false; resume();
+  clearFlash(); say('Board cleared. The clock keeps running.'); afterChange();
+});
+
+// ---------- boot ----------
+function start(data) {
+  const fromHash = HASH[location.hash.slice(1).toLowerCase()];
+  const today = DAYS[(new Date().getDay() + 6) % 7];
+  const first = WEEK.gb ? 'gb' : today;
+  const d = data && data.v === 3 && WEEK[data.day] ? data.day : fromHash || load('hexfields-v3:last') || first || DAYS[0];
+  openDay(WEEK[d] ? d : DAYS[0], data);
+}
+window.claude?.hot?.snapshot?.(() => snapshot());
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
