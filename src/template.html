@@ -52,17 +52,21 @@ h1 { font-family: var(--display); font-weight: 800; font-size: 2rem; letter-spac
   color: var(--muted);
 }
 .clock { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); font-size: 1.05rem; }
+.setline { margin: -6px 0 0; color: var(--muted); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.setline a { color: var(--ink); font-weight: 700; text-underline-offset: 3px; }
+.tabs { display: flex; flex-direction: column; gap: 6px; }
+.specials { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.days button {
+.tabs button {
   flex-direction: column; gap: 2px; min-height: 48px; padding: 6px 2px; border-radius: 8px;
   font-family: var(--display); font-size: 0.9rem; letter-spacing: 0.02em;
 }
-.days button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.days .mark { font-family: var(--body); font-size: 0.72rem; line-height: 1; min-height: 0.8rem; color: var(--muted); }
-.days button[aria-selected="true"] .mark { color: var(--bg); }
-.days .special { grid-column: 1 / -1; flex-direction: row; gap: 10px; min-height: 44px; font-size: 1.05rem; margin-bottom: 2px; }
-.days .kicker { font-family: var(--body); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.days button[aria-selected="true"] .kicker { color: var(--bg); }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tabs .mark { font-family: var(--body); font-size: 0.72rem; line-height: 1; min-height: 0.8rem; color: var(--muted); }
+.tabs button[aria-selected="true"] .mark { color: var(--bg); }
+.specials button { flex-direction: row; gap: 8px; min-height: 44px; font-size: 1rem; }
+.tabs .kicker { font-family: var(--body); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.tabs button[aria-selected="true"] .kicker { color: var(--bg); }
 .meta { margin: 0; color: var(--muted); font-size: 0.9rem; }
 .board-wrap { width: 100%; }
 #board { display: block; width: 100%; height: auto; max-height: 82vh; margin: 0 auto; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
@@ -134,7 +138,8 @@ details[open] summary { margin-bottom: 8px; }
     <div class="brand"><h1>Hex Fields</h1><span class="day" id="dayname"></span></div>
     <div class="clock" id="clock" aria-label="Elapsed time">0:00</div>
   </header>
-  <nav class="days" id="days" role="tablist" aria-label="Day of the week"></nav>
+  <p class="setline" id="setline"></p>
+  <nav class="tabs" id="days" role="tablist" aria-label="Puzzles"></nav>
   <p class="meta" id="meta"></p>
 
   <div class="board-wrap">
@@ -171,7 +176,7 @@ details[open] summary { margin-bottom: 8px; }
     <details>
       <summary>How to play</summary>
       <ul>
-        <li>Great Britain is a one-off map of the mainland, about as hard as a weekend puzzle. Below it, the week's puzzles get harder from Monday to Sunday: Monday is a small board, and the weekend boards may need a short trial.</li>
+        <li>The specially shaped boards sit at the top. Below them, the week's puzzles get harder from Monday to Sunday: Monday is a small board, and the weekend boards may need a short trial. Earlier sets stay in the archive.</li>
         <li>Tap a cell to cycle it: your chosen colour, then the other two, then blank.</li>
         <li>Drag across cells to paint them all with the chosen colour or mark.</li>
         <li>Press on a number to pick its colour, then drag outward to grow its field.</li>
@@ -197,11 +202,17 @@ details[open] summary { margin-bottom: 8px; }
 </main>
 
 <script>
-const WEEK = __WEEK__;
-const DAYS = ['gb', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].filter(d => WEEK[d]);
-const DAY_NAMES = { gb: 'Great Britain', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
-const slug = d => d === 'gb' ? 'britain' : DAY_NAMES[d].toLowerCase();
+const WEEK = __WEEK__;  // puzzles in this set, specials first
+const SET = __SET__;    // { id, title, date, links: [{ label, href }] }
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const NAMES = { gb: 'Great Britain', aus: 'Australia', star: 'Star', ring: 'Ring', mon: 'Monday', tue: 'Tuesday',
+  wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+const SPECIALS = Object.keys(WEEK).filter(d => !WEEKDAYS.includes(d));
+const DAYS = [...SPECIALS, ...WEEKDAYS.filter(d => WEEK[d])];
+const DAY_NAMES = Object.fromEntries(DAYS.map(d => [d, NAMES[d] || d]));
+const slug = d => d === 'gb' ? 'britain' : DAY_NAMES[d].toLowerCase().replace(/\s+/g, '-');
 const HASH = Object.fromEntries(DAYS.map(d => [slug(d), d]));
+const LAST = 'hexfields-v3:last:' + SET.id;
 // A cell holds a bitmask of the colours it may be: 1 green, 2 blue, 4 yellow; 0 is blank.
 const COLS = ['g', 'b', 'y'], SINGLE = { 1: 0, 2: 1, 4: 2 }, PAIR = { 3: 'gb', 5: 'gy', 6: 'by' };
 const cls = m => m === 0 ? 'empty' : m in SINGLE ? COLS[SINGLE[m]] : PAIR[m];
@@ -366,9 +377,16 @@ function afterChange() {
 
 // ---------- days ----------
 const tabs = document.getElementById('days');
-tabs.innerHTML = DAYS.map(d => d === 'gb'
-  ? `<button role="tab" class="special" id="tab-gb" data-day="gb" aria-selected="false" aria-label="Great Britain"><span class="kicker">Special</span>Great Britain<span class="mark"></span></button>`
-  : `<button role="tab" id="tab-${d}" data-day="${d}" aria-selected="false" aria-label="${DAY_NAMES[d]}">${DAY_NAMES[d].slice(0, 3)}<span class="mark"></span></button>`).join('');
+const tab = (d, label, kicker = '') => `<button role="tab" id="tab-${d}" data-day="${d}" aria-selected="false" ` +
+  `aria-label="${DAY_NAMES[d]}">${kicker && `<span class="kicker">${kicker}</span>`}${label}<span class="mark"></span></button>`;
+tabs.innerHTML =
+  (SPECIALS.length ? `<div class="specials">${SPECIALS.map(d => tab(d, DAY_NAMES[d], SPECIALS.length === 1 ? 'Special' : '')).join('')}</div>` : '') +
+  `<div class="days">${DAYS.filter(d => WEEKDAYS.includes(d)).map(d => tab(d, DAY_NAMES[d].slice(0, 3))).join('')}</div>`;
+const setline = document.getElementById('setline');
+setline.append(`${SET.title} · ${SET.date}`);
+for (const { label, href } of SET.links) {
+  const a = document.createElement('a'); a.href = href; a.textContent = label; setline.append(a);
+}
 tabs.addEventListener('click', e => { const b = e.target.closest('button'); if (b) openDay(b.dataset.day); });
 function renderTabs() {
   for (const d of DAYS) {
@@ -401,7 +419,7 @@ function openDay(d, data) {
   document.getElementById('meta').textContent = `${n} cells · ${P.clues.length} fields (${perCol[0]} green, ${perCol[1]} blue, ${perCol[2]} yellow)`;
   solved ? say(solvedMsg(), true) : say(started ? 'Welcome back. ' + hint : hint);
   try { history.replaceState(null, '', '#' + slug(d)); } catch (e) {}
-  store('hexfields-v3:last', d);
+  store(LAST, d);
   render(); tick();
 }
 
@@ -525,9 +543,9 @@ restartBtn.addEventListener('click', () => {
 // ---------- boot ----------
 function start(data) {
   const fromHash = HASH[location.hash.slice(1).toLowerCase()];
-  const today = DAYS[(new Date().getDay() + 6) % 7];
-  const first = WEEK.gb ? 'gb' : today;
-  const d = data && data.v === 3 && WEEK[data.day] ? data.day : fromHash || load('hexfields-v3:last') || first || DAYS[0];
+  const today = WEEKDAYS[(new Date().getDay() + 6) % 7];
+  const first = SPECIALS[0] || (WEEK[today] ? today : null);
+  const d = data && data.v === 3 && WEEK[data.day] ? data.day : fromHash || load(LAST) || first || DAYS[0];
   openDay(WEEK[d] ? d : DAYS[0], data);
 }
 window.claude?.hot?.snapshot?.(() => snapshot());

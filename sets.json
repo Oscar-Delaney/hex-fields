@@ -1,0 +1,36 @@
+[
+  {
+    "id": "2",
+    "title": "Set 2",
+    "date": "31 October 2026",
+    "blurb": "Australia, a six-pointed star and a ring, plus a new week from Monday to Sunday.",
+    "puzzles": {
+      "aus": "puzzles/set2/aus.json",
+      "star": "puzzles/set2/star.json",
+      "ring": "puzzles/set2/ring.json",
+      "mon": "puzzles/set2/mon.json",
+      "tue": "puzzles/set2/tue.json",
+      "wed": "puzzles/set2/wed.json",
+      "thu": "puzzles/set2/thu.json",
+      "fri": "puzzles/set2/fri.json",
+      "sat": "puzzles/set2/sat.json",
+      "sun": "puzzles/set2/sun.json"
+    }
+  },
+  {
+    "id": "1",
+    "title": "Set 1",
+    "date": "29 October 2026",
+    "blurb": "Great Britain, plus the first week from Monday to Sunday.",
+    "puzzles": {
+      "gb": "puzzles/set1/gb.json",
+      "mon": "puzzles/set1/mon.json",
+      "tue": "puzzles/set1/tue.json",
+      "wed": "puzzles/set1/wed.json",
+      "thu": "puzzles/set1/thu.json",
+      "fri": "puzzles/set1/fri.json",
+      "sat": "puzzles/set1/sat.json",
+      "sun": "puzzles/set1/sun.json"
+    }
+  }
+]

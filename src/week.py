@@ -9,13 +9,18 @@ SMALL_W = {1: 1, 2: 3, 3: 5, 4: 6, 5: 5, 6: 3, 7: 2, 8: 1}
 DAYS = {
     'mon': dict(N=4, tier=1, rounds=(0, 0), q=0, ok=dict(max_size=8, max_ones=2, min_col=2), w=SMALL_W),
     'tue': dict(N=5, tier=2, rounds=(1, 4), q=0, ok=dict(), w=SIZE_W),
+    'wed': dict(N=5, tier=2, rounds=(5, 14), q=1, ok=dict(), w=SIZE_W),
     'thu': dict(N=6, tier=2, rounds=(5, 12), q=1, ok=dict(max_size=13, max_ones=3), w=SIZE_W),
     'fri': dict(N=6, tier=2, rounds=(14, 99), q=1, ok=dict(max_size=13, max_ones=3), w=SIZE_W),
     'sat': dict(N=6, tier=3, rounds=(1, 2), q=2, ok=dict(max_size=13, max_ones=3), w=SIZE_W),
-    'sun': dict(N=6, tier=3, rounds=(3, 99), q=3, ok=dict(max_size=13, max_ones=3), w=SIZE_W),
-    # special: mainland Great Britain traced by shape_gb.py, around Friday-Sunday difficulty
+    'sun': dict(N=6, tier=3, rounds=(3, 8), q=3, ok=dict(max_size=13, max_ones=3), w=SIZE_W),
+    # specials on custom boards (shapes/*.json from shape_map.py / shape_geo.py)
     'gb': dict(cells='shapes/gb.json', tier=3, rounds=(1, 3), q=2, ok=dict(max_size=13, max_ones=3), w=SIZE_W,
                budget=25),
+    'star': dict(cells='shapes/star.json', tier=2, rounds=(5, 12), q=1, ok=dict(max_size=12, max_ones=3), w=SIZE_W),
+    'ring': dict(cells='shapes/ring.json', tier=2, rounds=(12, 99), q=1, ok=dict(max_size=12, max_ones=3), w=SIZE_W),
+    'aus': dict(cells='shapes/aus.json', tier=3, rounds=(1, 3), q=2, ok=dict(max_size=13, max_ones=3), w=SIZE_W,
+                budget=25),
 }
 HERE = os.path.dirname(os.path.abspath(__file__))
 
